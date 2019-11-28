@@ -55,10 +55,14 @@ def plotBestFit(weights):
 def stocGradAscent0(dataMatrix, classLabels):
     m,n = shape(dataMatrix)
     alpha = 0.01
+    # weights是一维数组，shape是(n,)
+    # 由于是数组，没有使用矩阵，所以下面的运算使用的都是array的默认运算，包括标量与数组的广播，而不是矩阵运算
     weights = ones(n)   #initialize to all ones
     for i in range(m):
+        # dataMatrix[i]取的是第i行，取出来后是一个一维数组，和weights是对应元素相乘，所以要用sum求出和
         h = sigmoid(sum(dataMatrix[i]*weights))
         error = classLabels[i] - h
+        # h 和 error都是标量，但是dataMatrix[i]是数组，weights也是数组，会使用广播运算
         weights = weights + alpha * error * dataMatrix[i]
     return weights
 
