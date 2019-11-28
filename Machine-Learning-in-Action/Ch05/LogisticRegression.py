@@ -15,7 +15,7 @@ def sigmoid(x):
 
 
 def gradientAscent(X, y):
-    # 数据矩阵X需要增加一列全为1，表示截距
+    # 数据矩阵需要增加一列全为1，表示截距
     intercep = np.ones((X.shape[0],1))
     X = np.hstack((intercep,X))
     # 需要将X和y转换为矩阵，以便直接使用矩阵的乘法
@@ -117,24 +117,20 @@ def stochasticGradientAscentImproved(X, y, numIter=150):
     # 开始迭代
     # 这里的迭代是在训练集上迭代
     for j in range(numIter):
+        # 使用索引来表示X中对应的样本，然后通过随机抽取索引的方式来实现随机抽取样本
+        dataIndex = list(range(n))
         for i in range(n):
             # 迭代步长动态变化
             alpha = 4/(1.0 + i + j) + 0.01
             # 随机选择一个样本
-            randIndex = np.random.choice(range(0,len(X)))
+            randIndex = np.random.choice(len(dataIndex))
             h = sigmoid(X[randIndex] * w)
             error = y[randIndex] - h
             w = w + alpha * X[randIndex].transpose() * error
-            del X[randIndex]
+            # 抽取之后就要删除，也就是不放回抽取
+            del dataIndex[randIndex]
     return w
-
-    #
-    # for i in range(n):
-    #     i = 1
-    #     h = sigmoid(X[i] * w)
-    #     error = y[i] - h
-    #     w = w + alpha * X[i].transpose() * error
-    # return w
 
 
 w3 = stochasticGradientAscent(X, y)
+w4 = stochasticGradientAscentImproved(X, y, 200)
