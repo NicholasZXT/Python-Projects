@@ -104,121 +104,85 @@ def majorVote(data, label):
 
 
 def trainDecisionTree(data, label, featureNames):
+    """
+    递归创建一棵决策树，创建的决策树是以nested dict的形式存在的；
+    这个nested dict的每一层key,是feature和feature的value交替进行，value不是类标签，就是子树(sub-dict)。
+    示例如：{'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}}
+    :param data: np.array类型
+    :param label: 类标签
+    :param featureNames: data中每一列特征的名称
+    :return: tree，嵌套的字典，字典的key是特征名称
+    """
+    # 判断递归是否停止有两个情况：
     # 递归结束的第一个条件，数据集的所有类标签都属于同一类
     if len(set(label)) == 1:
         return label[0]
     # 递归结束的第二个条件，用完了所有的特征，但是数据集还是含有多个类别，这时使用上面的majorVote给出类标签
     if len(data) == 0:
         return majorVote(data, label)
+    # 上述两个都不满足，说明还可以再进行分割
+    # 首先找出当前dataSet下的最佳分割feature(index表示)
     bestFeature = chooseBestFeature(data, label)
     bestFeatureName = featureNames[bestFeature]
-    tree = {bestFeatureName:{}}
+    # 删除已使用过的特征名称
     del featureNames[bestFeature]
+    # 根据当前数据集构造树，使用这个最佳feature构建一棵树
+    # 先用这个feature作为子树的根节点
+    tree = {bestFeatureName: {}}
+    # 拿到最佳特征的所有取值
     featureValues = set(data[:, bestFeature])
     for value in featureValues:
+        # 对于最佳特征的每个取值进行遍历，获得相应的数据子集
         subData, subLabel = splitData(data, label, bestFeature, value)
+        # 对于每个数据子集，构造相应的决策树，注意，这里使用的featureNames已经去掉了使用过的最佳feature的名称
         tree[bestFeatureName][value] = trainDecisionTree(subData, subLabel, featureNames[:])
     return tree
 
 
 def predictDecisionTree(tree, featureNames, testData):
-    rootFeatureName = tree.keys()[0]
+    """
+    决策树分类函数
+    :param tree: 已经由trainDecisionTree创建好的决策树，nested dict
+    :param featureNames: 特征的名称
+    :param testData: 待分类的数据，np.array类型
+    :return: classLabel，类标签
+    示例如：{'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}}
+    """
+    # 首先，对于testDate，需要知道决策树tree中用于分割的第一个feature（根节点）是哪个，
+    # 这个信息就是tree这个nested dict中的key，虽然这个key只有一个，还是需要使用index=0
+    rootFeatureName = list(tree.keys())[0]
+    # 得到根节点名称在featureNames中对应的index
     rootFeatureIndex = featureNames.index(rootFeatureName)
+    # 得到根节点下的子树，这些子树的每个key就是根节点特征所取的不同值
     subTree = tree[rootFeatureName]
+    # 判断testData中对应于根节点特征的值符合子树中的哪个分支
     for value in subTree.keys():
         if testData[rootFeatureIndex] == value:
-
-
-
-# -----
-data, label, featureNames = createDataSet()
-
-tree = trainDecisionTree(data, label,featureNames)
-
-
-
-
-def createDecisionTree(dataSet, featureNames):
-    """
-    递归创建一棵决策树，创建的决策树是以nested dict的形式存在的，
-    这个nested dict的每一层key,是feature和feature的value交替进行，value不是类标签，就是子树(sub-dict)
-    输入：
-    dataSet：是一个nested list，每个sublist代表一个观测，前面是各个feature的取值，最后一个是该观测的class label
-    labels：是feature的名称，list
-    输出：
-    deciTree：构建好的二叉决策树，是一个nested dict，一个dict表示一棵子树，示例如下
-    {'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}}
-    """
-    # 首先将dataSet中所有entries的类标签提取出来，从而知道总共有多少类
-    classLabels = [entries[-1] for entries in dataSet]
-    # 判断递归是否停止有两个情况：
-    # 情况一：当前dataSet中所有的entries都属于同一个类，那就直接返回这个类标签
-    if classLabels.count(classLabels[0]) == len(classLabels):
-        return classLabels[0]
-    # 情况二：当前dataSet中所有的feature都已经被使用过了，那就采取多数表决原则决定类标签（调用上述的majorityVote）
-    # 所有feature都被使用过时，dataSet中的sublist就只有一个值——classLabel了，所以长度==1
-    if len(dataSet[0]) == 1:
-        return majorityVote(dataSet)
-    # 上述两个都不满足，说明还可以再进行分割
-
-    # 首先找出当前dataSet下的最佳分割feature(index表示)
-    bestFeatureIndex = chooseBestFeature(dataSet)
-    # 最佳feature的名称
-    bestFeatureName = featureNames[bestFeatureIndex]
-
-    # 使用这个最佳feature构建一棵树，
-    # 先用这个feature作为子树的根节点
-    deciTree = {bestFeatureName: {}}
-
-    # 删除已经使用过的feature名称
-    # 这里要特别注意，不能使用下面这句，因为featureNames是作为list传进来的，这里是pass-by-reference
-    # 直接删除会导致外面的list内容也没有了
-    # del featureNames[bestFeatureIndex]
-    # 应当先获取copy
-    featureNames = featureNames[:]
-    del featureNames[bestFeatureIndex]
-
-    # 统计最佳feature的取值个数
-    featureValues = [entries[bestFeatureIndex] for entries in dataSet]
-    uniqueValue = set(featureValues)
-    # 对于最佳feature的每个取值，分别进行切割，同时构建子树
-    for value in uniqueValue:
-        # 根据最佳feature的取值,得到feature=value的训练集合subset
-        subset = filterDataset(dataSet, bestFeatureIndex, value)
-        # 对于这个subset，递归创建子树，注意，这里使用的featureNames已经去掉了使用过的最佳feature的名称
-        deciTree[bestFeatureName][value] = createDecisionTree(subset, featureNames)
-    return deciTree
-
-
-
-def classifyDecisionTree(deciTree, featureNames, inputList):
-    '''
-    决策树分类函数
-    输入：
-    deciTree:已经由createDecisiontree创建好的决策树，nested dict
-    fealtureNames:feature的名称，nested list
-    inputList:待分类的观测向量,list
-    输出：
-    classLabels：inputList被分到的类标签
-    '''
-    # 首先，给定了inputList，需要知道决策树deciTree中用于分割的第一个feature（根节点）是哪个，
-    # 这个信息就是deciTree这个nested dict中的key，虽然这个key只有一个，还是需要使用index=0
-    rootName = list(deciTree.keys())[0]
-    rootIndex = featureNames.index(rootName)
-    # 根节点之下的子树就是root这个key对应的value——它也是一个nested dict,
-    # 不过它是子树的集合(不是单独的一棵子树)，而是root的每一个value都对应于一棵子树，所以是集合
-    subtreeSet = deciTree[rootName]
-    # 对于根据root创建的subtreeSet，它的key不再是feature了，而是上一个feature root的不同取值，
-    # 每个不同的取值对应于不同的subtree——这个才是单独的一棵子树，它的key只有一个，就是这棵子树的root
-    for rootValue in subtreeSet.keys():
-        if inputList[rootIndex] == rootValue:
-            # 根节点root不同的value下的子树可能有两种情况：
-            # 一种是subtree，这时候该rootValue对应的value仍然是一个dict，所以还需要递归下去
-            if type(subtreeSet[rootValue]).__name__ == "dict":
-                classLabel = classifyDecisionTree(subtreeSet[rootValue], featureNames, inputList)
-            # 另一种是叶子节点，这时候对应的value就是一个类标签
+            # 找到这个分支后，看这个分支的value是不是还是一个dict,是的话，说明还有子树，还需要进一步判断，
+            if type(subTree[value]).__name__ == 'dict':
+                # classLabel = predictDecisionTree(subTree, featureNames, testData),注意这里传入subTree是不对的
+                classLabel = predictDecisionTree(subTree[value], featureNames, testData)
+            # 如果不是dict，说明就到了叶子节点，直接返回叶子节点的类标签
             else:
-                classLabel = subtreeSet[rootValue]
+                classLabel = subTree[value]
     return classLabel
 
-# 下面这部分代码用于绘制已经创建好的decision tree的图形
+
+# -----测试上面的代码
+if __name__ == "__main__":
+
+    data, label, featureNames = createDataSet()
+
+    tree = trainDecisionTree(data, label, featureNames.copy())
+
+    testData = data[0, :]
+    predictDecisionTree(tree, featureNames, testData)
+
+    predLabel = []
+    for i in range(len(data)):
+        testData = data[i, :]
+        t = predictDecisionTree(tree, featureNames, testData)
+        predLabel.append(t)
+
+    label
+    predLabel
