@@ -1,8 +1,8 @@
 
 import numpy as np
 
-# cd 'Machine-Learning-in-Action/Ch05/'
-# cd .\Machine-Learning-in-Action\Ch05\
+# cd 'Machine-Learning-in-Action/Ch05-LogisticRegression/'
+# cd .\Machine-Learning-in-Action\Ch05-LogisticRegression\
 
 dataSet = np.loadtxt("testSet.txt")
 X = dataSet[:, :2]

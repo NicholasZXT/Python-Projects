@@ -1,6 +1,6 @@
 
-# %cd Machine-Learning-in-Action/Ch05
-# cd .\Machine-Learning-in-Action\Ch05\
+# %cd Machine-Learning-in-Action/Ch04-NaiveBayes
+# cd .\Machine-Learning-in-Action\Ch04-NaiveBayes\
 
 import numpy as np
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
