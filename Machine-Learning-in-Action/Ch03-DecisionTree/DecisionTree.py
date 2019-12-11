@@ -105,7 +105,7 @@ def majorVote(data, label):
 
 def trainDecisionTree(data, label, featureNames):
     """
-    递归创建一棵决策树，创建的决策树是以nested dict的形式存在的；
+    ID3算法，递归创建一棵决策树，创建的决策树是以nested dict的形式存在的；
     这个nested dict的每一层key,是feature和feature的value交替进行，value不是类标签，就是子树(sub-dict)。
     示例如：{'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}}
     :param data: np.array类型
