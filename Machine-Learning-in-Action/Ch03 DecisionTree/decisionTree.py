@@ -11,9 +11,11 @@ def createDataSet():
     dataSet:一个nested list，每一个sublist包括两部分，前面都是对应于feature的取值，1-yes,0-no,最后一个表示class label
     featureNames：list,表示的是sublist中各个feature的名称，因为dataSet中没有存储feature的名称，只存储了值
     """
-    dataSet = [[1, 1, 'yes'], [1, 1, 'yes'], [1, 0, 'no'], [0, 1, 'no'], [0, 1, 'no']]
+    # data = [[1, 1, 'yes'], [1, 1, 'yes'], [1, 0, 'no'], [0, 1, 'no'], [0, 1, 'no']]
+    data = np.array([[1, 1], [1, 1], [1, 0], [0, 1], [0, 1]])
+    label = np.array(['yes', 'yes', 'no', 'no', 'no'])
     featureNames = ['no surfacing', 'flippers']
-    return dataSet, featureNames
+    return data, label, featureNames
 
 
 def shannonEntropy(dataLabel):
@@ -101,7 +103,37 @@ def majorVote(data, label):
     return labelMax
 
 
+def trainDecisionTree(data, label, featureNames):
+    # 递归结束的第一个条件，数据集的所有类标签都属于同一类
+    if len(set(label)) == 1:
+        return label[0]
+    # 递归结束的第二个条件，用完了所有的特征，但是数据集还是含有多个类别，这时使用上面的majorVote给出类标签
+    if len(data) == 0:
+        return majorVote(data, label)
+    bestFeature = chooseBestFeature(data, label)
+    bestFeatureName = featureNames[bestFeature]
+    tree = {bestFeatureName:{}}
+    del featureNames[bestFeature]
+    featureValues = set(data[:, bestFeature])
+    for value in featureValues:
+        subData, subLabel = splitData(data, label, bestFeature, value)
+        tree[bestFeatureName][value] = trainDecisionTree(subData, subLabel, featureNames[:])
+    return tree
 
+
+def predictDecisionTree(tree, featureNames, testData):
+    rootFeatureName = tree.keys()[0]
+    rootFeatureIndex = featureNames.index(rootFeatureName)
+    subTree = tree[rootFeatureName]
+    for value in subTree.keys():
+        if testData[rootFeatureIndex] == value:
+
+
+
+# -----
+data, label, featureNames = createDataSet()
+
+tree = trainDecisionTree(data, label,featureNames)
 
 
 
