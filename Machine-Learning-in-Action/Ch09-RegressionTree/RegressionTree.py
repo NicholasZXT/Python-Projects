@@ -1,13 +1,9 @@
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
 # %cd Machine-Learning-in-Action/Ch09-RegressionTree
 # cd .\Machine-Learning-in-Action\Ch09-RegressionTree\
-
-
 
 """
 这里创建的回归树是使用的是一个字典来保存，和ID3算法里不同的是，这里的字典里有四个项目：
@@ -56,7 +52,7 @@ def regressionError(data, y):
     return np.var(y) * len(y)
 
 
-def chooseBestSplit(data, y, calLeafValue=calRegressionLeaf, calError=regressionError, stopOptions=(1,4)):
+def chooseBestSplit(data, y, calLeafValue, calError, stopOptions):
     """
     这个函数是回归树里最复杂、也是最重要的部分。
     它遍历data中所有的特征以及可能的取值（data中出现过的值），找到最佳的切分特征和对应的切分value；
@@ -68,9 +64,9 @@ def chooseBestSplit(data, y, calLeafValue=calRegressionLeaf, calError=regression
     其实2和3属于预剪枝。
     :param data:
     :param y:
-    :param calLeafValue:
-    :param calError:
-    :param stopOptions:
+    :param calLeafValue: =calRegressionLeaf
+    :param calError: =regressionError
+    :param stopOptions: =(1,4)
     :return: 返回的是用于切分的bestFeature(用index表示）以及相应的切分value；
     如果不做切分，那么返回的feature就是None，返回的值就是叶子节点的值
     """
@@ -124,7 +120,7 @@ def createRegressionTree(data, y, calLeafValue=calRegressionLeaf, calError=regre
     :return:
     """
     # 首先尝试切分数据，并找到最佳的切分特征和切分点
-    bestFeatureIndex, bestSplitValue = chooseBestSplit(data, y,  calLeafValue, calError, stopOptions)
+    bestFeatureIndex, bestSplitValue = chooseBestSplit(data, y, calLeafValue, calError, stopOptions)
     # 如果不能切分，那就直接返回叶子节点的值
     if bestFeatureIndex == None:
         return bestSplitValue
@@ -134,20 +130,93 @@ def createRegressionTree(data, y, calLeafValue=calRegressionLeaf, calError=regre
     tree["featureIndex"] = bestFeatureIndex
     tree["splitValue"] = bestSplitValue
     # 根据最佳切分特征和切分点来二分数据集
-    leftData, rightData , lefty, righty = binarySplitData(data, y, bestFeatureIndex, bestSplitValue)
+    leftData, rightData, lefty, righty = binarySplitData(data, y, bestFeatureIndex, bestSplitValue)
     # 递归创建左右子树
     tree["left"] = createRegressionTree(leftData, lefty, calLeafValue, calError, stopOptions)
-    tree['right'] = createRegressionTree(rightData, righty,  calLeafValue, calError, stopOptions)
+    tree['right'] = createRegressionTree(rightData, righty, calLeafValue, calError, stopOptions)
+    return tree
+
+
+# ---------下面这部分代码都是用于剪枝
+
+def isTree(tree):
+    """
+
+    :param tree:
+    :return:
+    """
+    return type(tree).__name__ == "dict"
+
+
+def getMean(tree):
+    """
+
+    :param tree:
+    :return:
+    """
+    if isTree(tree['left']):
+        tree['right'] = getMean(tree['right'])
+    if isTree(tree['right']):
+        tree['right'] = getMean(tree['right'])
+    return (tree['left'] + tree['right']) / 2.0
+
+
+def prune(tree, testData, y):
+    """
+    这个剪枝算法不是CART原生的剪枝算法。
+    这里利用一个测试集来对已经生成的回归树进行剪枝，
+    :param tree:
+    :param testData:
+    :param y:
+    :return:
+    """
+    # 如果分割到当前树的测试集为空，那就直接collapse这棵子树——这个逻辑不是很能理解
+    if len(testData) == 0:
+        return getMean(tree)
+
+    # 只要左右分支有一个是子树，那就分割测试数据集，继续对子树剪枝
+    if isTree(tree['left']) or isTree(tree['right']):
+        # 注意，这里是对测试数据集进行分割，用于分割的特征是当前树的根节点和对应的分割值
+        leftSubdata, rightSubdata, lefty, righty = binarySplitData(testData, y, tree['featureIndex'], tree['splitValue'])
+        if isTree(tree['left']):
+            tree['left'] = prune(tree['left'], leftSubdata, lefty)
+        if isTree(tree['right']):
+            tree['right'] = prune(tree['right'], rightSubdata, righty)
+        return tree
+
+    # 如果左右分支都不是子树，那么当前节点就是叶子节点的上一层，也就是需要直接进行剪枝合并的节点
+    if not isTree(tree['left']) and not isTree(tree['right']):
+        leftSubdata, rightSubdata, lefty, righty = binarySplitData(testData, y, tree['featureIndex'],
+                                                                   tree['splitValue'])
+        errorBeforeMerge = np.sum((lefty - tree['left'])**2) + np.sum((righty - tree['right'])**2)
+        treeMean = (tree['left'] + tree['right']) / 2.0
+        errorAfterMerge = np.sum((y - treeMean)**2)
+        if errorAfterMerge < errorBeforeMerge:
+            print("Merging")
+            return treeMean
+        else:
+            return tree
+
+
+
+
+    pass
 
 
 if __name__ == "__main__":
-
     data = pd.read_csv("ex0.txt", sep='\t', header=None).values
     y = data[:, -1]
     data = data[:, :-1]
 
-
-
-    data = pd.read_csv("ex00.txt", sep='\t', header=None)
+    data = pd.read_csv("ex00.txt", sep='\t', header=None).values
     y = data[:, -1]
     data = data[:, :-1]
+
+    tree = createRegressionTree(data, y)
+    print(tree)
+
+    # {'featureIndex': 1, 'splitValue': 0.39435,
+    #  'left': {'featureIndex': 1, 'splitValue': 0.19783399999999998, 'left': -0.02383815555555556,
+    #           'right': 1.0289583666666666},
+    #  'right': {'featureIndex': 1, 'splitValue': 0.582002, 'left': 1.9800350714285715,
+    #            'right': {'featureIndex': 1, 'splitValue': 0.797583, 'left': 2.9836209534883724, 'right': 3.9871632}}}

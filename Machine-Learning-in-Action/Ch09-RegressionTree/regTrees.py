@@ -93,10 +93,13 @@ def getMean(tree):
     
 def prune(tree, testData):
     if shape(testData)[0] == 0: return getMean(tree) #if we have no test data collapse the tree
+
+    # 下面这三个if是一个整体，用于只要有一个子节点是子树就执行，其实后两个if应该缩进，属于第一个if里的
     if (isTree(tree['right']) or isTree(tree['left'])):#if the branches are not trees try to prune them
         lSet, rSet = binSplitDataSet(testData, tree['spInd'], tree['spVal'])
     if isTree(tree['left']): tree['left'] = prune(tree['left'], lSet)
     if isTree(tree['right']): tree['right'] =  prune(tree['right'], rSet)
+
     #if they are now both leafs, see if we can merge them
     if not isTree(tree['left']) and not isTree(tree['right']):
         lSet, rSet = binSplitDataSet(testData, tree['spInd'], tree['spVal'])
@@ -108,6 +111,7 @@ def prune(tree, testData):
             print "merging"
             return treeMean
         else: return tree
+    # 下面这个else感觉完全就是多余的，应该放到第一个if里
     else: return tree
     
 def regTreeEval(model, inDat):
