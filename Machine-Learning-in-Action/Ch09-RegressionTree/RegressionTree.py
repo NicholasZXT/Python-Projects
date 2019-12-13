@@ -7,10 +7,12 @@ import matplotlib.pyplot as plt
 
 """
 这里创建的回归树是使用的是一个字典来保存，和ID3算法里不同的是，这里的字典里有四个项目：
-1. 切分的特征
-2. 切分特征的取值
-3. 左子树
-4. 右子树
+1. 切分的特征featureIndex
+2. 切分特征的取值splitValue
+3. 左子树left
+4. 右子树right
+
+其中，左右子树对应的value要么是具体的值——也就是叶子节点，要么也是一个字典——对应的子树
 """
 
 
@@ -118,6 +120,18 @@ def createRegressionTree(data, y, calLeafValue=calRegressionLeaf, calError=regre
     :param calError:
     :param stopOptions:
     :return:
+    示例：
+    {'featureIndex': 1, 'splitValue': 0.39435,
+    'left': {'featureIndex': 1, 'splitValue': 0.19783399999999998,
+            'left': -0.02383815555555556,
+            'right': 1.0289583666666666},
+    'right': {'featureIndex': 1, 'splitValue': 0.582002,
+              'left': 1.9800350714285715,
+              'right': {'featureIndex': 1, 'splitValue': 0.797583,
+                        'left': 2.9836209534883724,
+                        'right': 3.9871632}
+              }
+    }
     """
     # 首先尝试切分数据，并找到最佳的切分特征和切分点
     bestFeatureIndex, bestSplitValue = chooseBestSplit(data, y, calLeafValue, calError, stopOptions)
@@ -137,11 +151,12 @@ def createRegressionTree(data, y, calLeafValue=calRegressionLeaf, calError=regre
     return tree
 
 
+
 # ---------下面这部分代码都是用于剪枝
 
 def isTree(tree):
     """
-
+    用于判断当前的节点是叶子节点还是一棵子树
     :param tree:
     :return:
     """
@@ -150,7 +165,8 @@ def isTree(tree):
 
 def getMean(tree):
     """
-
+    这个函数用于计算这棵树的所有叶子节点“均值”，说是均值，其实不准确，因为叶子节点在合并的时候，
+    采用的是求两个叶子节点均值的方式，这个方式太粗糙
     :param tree:
     :return:
     """
@@ -164,7 +180,8 @@ def getMean(tree):
 def prune(tree, testData, y):
     """
     这个剪枝算法不是CART原生的剪枝算法。
-    这里利用一个测试集来对已经生成的回归树进行剪枝，
+    这里利用一个测试集来对已经生成的回归树进行剪枝。剪枝是递归进行的，也就是说，只有当前节点的左右孩子是叶子节点时，
+    才对当前节点进行实际的剪枝操作（需要进行判断），只要有一个孩子节点是子树，那就要递归到下一层进行执行。
     :param tree:
     :param testData:
     :param y:
@@ -188,9 +205,12 @@ def prune(tree, testData, y):
     if not isTree(tree['left']) and not isTree(tree['right']):
         leftSubdata, rightSubdata, lefty, righty = binarySplitData(testData, y, tree['featureIndex'],
                                                                    tree['splitValue'])
+        # 计算合并前的误差
         errorBeforeMerge = np.sum((lefty - tree['left'])**2) + np.sum((righty - tree['right'])**2)
+        # 下面计算合并后的误差，这里的计算其实不准确，它是将两个叶子节点的值求均值之后作为新的叶子节点的值，实际上应该重新计算
         treeMean = (tree['left'] + tree['right']) / 2.0
         errorAfterMerge = np.sum((y - treeMean)**2)
+        # 如果合并后的误差比合并前的误差小，那就进行合并，返回合并后的均值，否则不合并，返回原有的树
         if errorAfterMerge < errorBeforeMerge:
             print("Merging")
             return treeMean
@@ -198,9 +218,28 @@ def prune(tree, testData, y):
             return tree
 
 
-
-
-    pass
+def predictRegressionTree(tree, testData):
+    """
+    用已有的回归树来对测试数据进行预测
+    :param tree:
+    :param testData:
+    :return:
+    """
+    # 如果tree不是一棵子树（字典），那它就是叶节点（一个具体的值），直接返回这个叶节点的值。
+    if not isTree(tree):
+        return tree
+    # 如果是一颗子树，需要根据这棵树来对testData进行判别，看testData落入哪个节点
+    if testData[tree['featureIndex']] < tree['splitValue']:
+        # 查看左子树是否是一棵树，是的话递归调用
+        if isTree(tree['left']):
+            return predictRegressionTree(tree['left'], testData)
+        else:
+            return tree['left']
+    else:
+        if isTree(tree['right']):
+            return predictRegressionTree(tree['right'], testData)
+        else:
+            return tree['right']
 
 
 if __name__ == "__main__":
