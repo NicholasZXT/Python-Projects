@@ -171,7 +171,7 @@ def getMean(tree):
     :return:
     """
     if isTree(tree['left']):
-        tree['right'] = getMean(tree['right'])
+        tree['left'] = getMean(tree['left'])
     if isTree(tree['right']):
         tree['right'] = getMean(tree['right'])
     return (tree['left'] + tree['right']) / 2.0
@@ -243,19 +243,38 @@ def predictRegressionTree(tree, testData):
 
 
 if __name__ == "__main__":
+
     data = pd.read_csv("ex0.txt", sep='\t', header=None).values
     y = data[:, -1]
     data = data[:, :-1]
+    #
+    # data = pd.read_csv("ex00.txt", sep='\t', header=None).values
+    # y = data[:, -1]
+    # data = data[:, :-1]
 
-    data = pd.read_csv("ex00.txt", sep='\t', header=None).values
-    y = data[:, -1]
-    data = data[:, :-1]
-
+    # 测试回归树的创建
     tree = createRegressionTree(data, y)
-    print(tree)
-
+    # print(tree)
     # {'featureIndex': 1, 'splitValue': 0.39435,
     #  'left': {'featureIndex': 1, 'splitValue': 0.19783399999999998, 'left': -0.02383815555555556,
     #           'right': 1.0289583666666666},
     #  'right': {'featureIndex': 1, 'splitValue': 0.582002, 'left': 1.9800350714285715,
     #            'right': {'featureIndex': 1, 'splitValue': 0.797583, 'left': 2.9836209534883724, 'right': 3.9871632}}}
+
+    # 回归树的预测
+    testData = data[0, :]
+    y[0]
+    predictRegressionTree(tree, testData)
+
+
+    # 测试回归树的剪枝
+    # data = pd.read_csv("ex2.txt", sep='\t', header=None).values
+    # y = data[:, -1]
+    # data = data[:, :-1]
+    # tree = createRegressionTree(data, y, stopOptions=(0, 1))
+    # testData = pd.read_csv("ex2test.txt", sep='\t', header=None).values
+    # testy = testData[:, -1]
+    # testData = testData[:, :-1]
+    # pruneTree = prune(tree, testData, testy)
+
+
